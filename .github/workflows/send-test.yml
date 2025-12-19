@@ -1,0 +1,36 @@
+name: Send test email (OneSignal)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  send_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send email via OneSignal
+        env:
+          ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
+          ONESIGNAL_API_KEY: ${{ secrets.ONESIGNAL_API_KEY }}
+          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+        run: |
+          if [ -z "$ONESIGNAL_APP_ID" ] || [ -z "$ONESIGNAL_API_KEY" ] || [ -z "$TEST_EMAIL" ] || [ -z "$FROM_EMAIL" ]; then
+            echo "Missing one or more secrets (ONESIGNAL_APP_ID / ONESIGNAL_API_KEY / TEST_EMAIL / FROM_EMAIL)"
+            exit 1
+          fi
+
+          payload=$(cat <<EOF
+          {
+            "app_id": "$ONESIGNAL_APP_ID",
+            "email_subject": "APÉRO DE NUIT 66 — Test ✅",
+            "email_body": "<h2>Mail test</h2><p>Si tu lis ça, c’est ok ✅</p><p><a href='https://aperos.net' style='display:inline-block;padding:12px 18px;border-radius:10px;background:#00c2ff;color:#000;text-decoration:none;font-weight:700;'>Ouvrir Apéro de Nuit</a></p>",
+            "include_email_tokens": ["$TEST_EMAIL"],
+            "from_email": "$FROM_EMAIL"
+          }
+          EOF
+          )
+
+          curl -sS -X POST "https://onesignal.com/api/v1/notifications" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -H "Authorization: Basic $ONESIGNAL_API_KEY" \
+            -d "$payload"
